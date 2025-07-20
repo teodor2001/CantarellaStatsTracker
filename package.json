@@ -1,0 +1,16 @@
+{
+  "name": "cantarella-optimizer-bootstrap",
+  "version": "1.0.0",
+  "description": "Wuthering Waves - Cantarella Ultimate Build Optimizer (Bootstrap Version)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "devDependencies": {}
+}
