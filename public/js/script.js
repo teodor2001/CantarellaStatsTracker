@@ -1,7 +1,9 @@
+// CantarellaStatsTracker/public/js/script.js
+
 // --- DATA & CONFIGURATION ---
 const WEAPON_DATA = {
     // 5-Star (R1 assumed)
-    "cosmic_ripples": { name: "Cosmic Ripples (5★)", image: "weapon_images/CosmicRipples.webp", baseAtk: 500, subStat: "ATK%", subValue: 54, bonuses: { "Energy Regen%": 12.8, "Basic ATK DMG%": 16.0 } },
+    "cosmic_ripples": { name: "Cosmic Ripples (5★)", image: "weapon_images/CosmicRipples.webp", baseAtk: 500, subStat: "Energy Regen%", subValue: 12.8, bonuses: { "Basic ATK DMG%": 16.0 } },
     "luminous_hymn": { name: "Luminous Hymn (5★)", image: "weapon_images/Luminous Hymn.webp", baseAtk: 500, subStat: "Crit Rate%", subValue: 36, bonuses: { "ATK%": 12, "Basic ATK DMG%": 42, "Heavy ATK DMG%": 42, "Spectro Frazzle DMG%": 30 } },
     "rime_draped_sprouts": { name: "Rime-Draped Sprouts (5★)", image: "weapon_images/Rime-Draped Sprouts.webp", baseAtk: 500, subStat: "Crit DMG%", subValue: 72, bonuses: { "ATK%": 12, "Basic ATK DMG%": 36, "Off-field Basic ATK DMG%": 52 } },
     "stellar_symphony": { name: "Stellar Symphony (5★)", image: "weapon_images/Stellar Symphony.webp", baseAtk: 412, subStat: "Energy Regen%", subValue: 77, bonuses: { "HP%": 12, "ATK%": 14 } },
@@ -175,15 +177,16 @@ const MAIN_STAT_VALUES = {
         { cost: 1, main: ['ATK%', 'HP%', 'DEF%'], defaultMain: 'ATK%' },
         { cost: 1, main: ['ATK%', 'HP%', 'DEF%'], defaultMain: 'ATK%' }
     ];
+    // Updated SUBSTAT_OPTIONS to exclude elemental DMG and Healing Bonus, as these cannot roll as substats.
     const SUBSTAT_OPTIONS = ['None', 'ATK', 'HP', 'DEF', 'ATK%', 'HP%', 'DEF%', 'Crit Rate%', 'Crit DMG%', 'Energy Regen%', 'Basic ATK DMG%', 'Heavy ATK DMG%', 'Skill DMG%', 'Liberation DMG%'];
     
     const STAT_INFO = {
-        'Total ATK': { id: 'total_atk', target: 3500, icon: 'https://i.imgur.com/r1s3MOx.png' },
-        'Crit Rate%': { id: 'total_cr', target: 80, icon: 'https://i.imgur.com/SSuNN9Z.png' },
-        'Crit DMG%': { id: 'total_cd', target: 280, icon: 'https://i.imgur.com/T8IzZqA.png' },
-        'Energy Regen%': { id: 'total_er', target: 120, icon: 'https://i.imgur.com/BykZSt1.png' },
-        'Havoc DMG%': { id: 'total_havoc_dmg', target: 70, icon: 'https://i.imgur.com/7fUx9av.png' },
-        'Basic ATK DMG%': { id: 'total_basic_dmg', target: 30, icon: 'https://i.imgur.com/rW2Gpxc.png' }
+        'Total ATK': { id: 'total_atk', target: 3500, icon: 'stat_icons/stat_atk.png' },
+        'Crit Rate%': { id: 'total_cr', target: 80, icon: 'stat_icons/stat_crit.png' },
+        'Crit DMG%': { id: 'total_cd', target: 280, icon: 'stat_icons/stat_critdmg.png' },
+        'Energy Regen%': { id: 'total_er', target: 120, icon: 'stat_icons/stat_energy.png' },
+        'Havoc DMG%': { id: 'total_havoc_dmg', target: 70, icon: 'stat_icons/stat_dark.png' },
+        'Basic ATK DMG%': { id: 'total_basic_dmg', target: 30, icon: 'stat_icons/BasicATK.png' }
     };
 
     // Default build dataset for Cantarella (your current build)
@@ -336,7 +339,10 @@ const MAIN_STAT_VALUES = {
             let html = `<div class="card bg-dark border-secondary h-100"><div class="card-body">
                             <h4 class="fs-6 text-white mb-3">Echo ${i+1} (Cost ${echo.cost})</h4>`;
             html += `<div class="mb-3">
-                            <label class="form-label stat-label small">Main Stat</label>
+                            <label class="form-label stat-label small">
+                                <img id="echo_${i}_main_icon" src="" class="stat-icon me-2" alt="Main Stat Icon" style="display:none;">
+                                Main Stat
+                            </label>
                             <select id="echo_${i}_main" class="form-select form-select-sm calc-trigger">`;
             // Set default main stat based on ECHO_CONFIG
             echo.main.forEach(stat => {
@@ -347,9 +353,14 @@ const MAIN_STAT_VALUES = {
             for (let j = 0; j < 5; j++) {
                 html += `<div class="row g-2 mb-2 align-items-center">
                                 <div class="col-7">
+                                    <label class="stat-label small">
+                                        <img id="echo_${i}_sub${j}_icon" src="" class="stat-icon me-2" alt="Substat Icon" style="display:none;">
+                                        Substat ${j+1}
+                                    </label>
                                     <select id="echo_${i}_sub${j}_type" class="form-select form-select-sm calc-trigger">${SUBSTAT_OPTIONS.map(s => `<option value="${s}">${s}</option>`).join('')}</select>
                                 </div>
                                 <div class="col-5">
+                                    <label for="echo_${i}_sub${j}_value" class="form-label small">Value</label>
                                     <input type="number" id="echo_${i}_sub${j}_value" value="0" class="form-control form-control-sm calc-trigger" step="0.1">
                                 </div>
                             </div>`;
@@ -427,7 +438,7 @@ const MAIN_STAT_VALUES = {
 
     // Function to simulate build calculation given a dataset
     function simulateBuild(dataset) {
-        const charBaseAtk = dataset.charBaseAtk || 0;
+        const charBaseAtk = parseFloat(dataset.charBaseAtk) || 0;
         const weapon = WEAPON_DATA[dataset.weaponSelect];
         
         // (Base ATK_Character + Base ATK_Weapon) part of the formula
@@ -710,6 +721,94 @@ const MAIN_STAT_VALUES = {
         const selectedSonataKey = document.getElementById('sonata_select').value;
         if(SONATA_DATA[selectedSonataKey]) {
             document.getElementById('sonata_icon').src = SONATA_DATA[selectedSonataKey].icon;
+        }
+
+        // Update main stat icons for echoes
+        for (let i = 0; i < 5; i++) {
+            const mainTypeSelect = document.getElementById(`echo_${i}_main`);
+            const mainIconElement = document.getElementById(`echo_${i}_main_icon`);
+
+            if (mainTypeSelect && mainIconElement) {
+                const selectedMainType = mainTypeSelect.value;
+                let iconPath = '';
+                switch(selectedMainType) {
+                    case 'ATK': iconPath = 'stat_icons/stat_atk.png'; break;
+                    case 'HP': iconPath = 'stat_icons/stat_hp.png'; break;
+                    case 'DEF': iconPath = 'stat_icons/stat_def.png'; break;
+                    case 'ATK%': iconPath = 'stat_icons/stat_atk.png'; break;
+                    case 'HP%': iconPath = 'stat_icons/stat_hp.png'; break;
+                    case 'DEF%': iconPath = 'stat_icons/stat_def.png'; break;
+                    case 'Crit Rate%': iconPath = 'stat_icons/stat_crit.png'; break;
+                    case 'Crit DMG%': iconPath = 'stat_icons/stat_critdmg.png'; break;
+                    case 'Energy Regen%': iconPath = 'stat_icons/stat_energy.png'; break;
+                    case 'Havoc DMG%': iconPath = 'stat_icons/stat_dark.png'; break;
+                    case 'Glacio DMG%': iconPath = 'stat_icons/stat_ice.png'; break;
+                    case 'Fusion DMG%': iconPath = 'stat_icons/stat_fire.png'; break;
+                    case 'Electro DMG%': iconPath = 'stat_icons/stat_ele.png'; break;
+                    case 'Aero DMG%': iconPath = 'stat_icons/stat_wind.png'; break;
+                    case 'Spectro DMG%': iconPath = 'stat_icons/stat_spec.png'; break;
+                    case 'Healing Bonus%': iconPath = 'stat_icons/stat_heal.png'; break;
+                    case 'None':
+                    default:
+                        iconPath = '';
+                        break;
+                }
+
+                if (iconPath) {
+                    mainIconElement.src = iconPath;
+                    mainIconElement.style.display = 'inline-block';
+                } else {
+                    mainIconElement.src = '';
+                    mainIconElement.style.display = 'none';
+                }
+            }
+        }
+
+        // Aggiorna le icone dei substat degli echi
+        for (let i = 0; i < 5; i++) {
+            for (let j = 0; j < 5; j++) {
+                const subTypeSelect = document.getElementById(`echo_${i}_sub${j}_type`);
+                const subIconElement = document.getElementById(`echo_${i}_sub${j}_icon`);
+
+                if (subTypeSelect && subIconElement) {
+                    const selectedSubType = subTypeSelect.value;
+                    let iconPath = '';
+                    switch(selectedSubType) {
+                        case 'ATK': iconPath = 'stat_icons/stat_atk.png'; break;
+                        case 'HP': iconPath = 'stat_icons/stat_hp.png'; break;
+                        case 'DEF': iconPath = 'stat_icons/stat_def.png'; break;
+                        case 'ATK%': iconPath = 'stat_icons/stat_atk.png'; break;
+                        case 'HP%': iconPath = 'stat_icons/stat_hp.png'; break;
+                        case 'DEF%': iconPath = 'stat_icons/stat_def.png'; break;
+                        case 'Crit Rate%': iconPath = 'stat_icons/stat_crit.png'; break;
+                        case 'Crit DMG%': iconPath = 'stat_icons/stat_critdmg.png'; break;
+                        case 'Energy Regen%': iconPath = 'stat_icons/stat_energy.png'; break;
+                        case 'Basic ATK DMG%': iconPath = 'stat_icons/BasicATK.png'; break;
+                        case 'Heavy ATK DMG%': iconPath = 'stat_icons/HeavyATK.png'; break;
+                        case 'Skill DMG%': iconPath = 'stat_icons/Resonance_Skill.png'; break;
+                        case 'Liberation DMG%': iconPath = 'stat_icons/Resonance_Liberation.png'; break;
+                        case 'Havoc DMG%': iconPath = 'stat_icons/stat_dark.png'; break;
+                        case 'Glacio DMG%': iconPath = 'stat_icons/stat_ice.png'; break;
+                        case 'Fusion DMG%': iconPath = 'stat_icons/stat_fire.png'; break;
+                        case 'Electro DMG%': iconPath = 'stat_icons/stat_ele.png'; break;
+                        case 'Aero DMG%': iconPath = 'stat_icons/stat_wind.png'; break;
+                        case 'Spectro DMG%': iconPath = 'stat_icons/stat_spec.png'; break;
+                        case 'Healing Bonus%': iconPath = 'stat_icons/stat_heal.png'; break;
+                        case 'None':
+                        default:
+                            iconPath = '';
+                            break;
+                    }
+
+                    if (iconPath) {
+                        subIconElement.src = iconPath;
+                        subIconElement.style.display = 'inline-block';
+                    } else {
+                        subIconElement.src = '';
+                        subIconElement.style.display = 'none';
+                    }
+                }
+            }
         }
 
         document.getElementById('eff_dmg_score').textContent = currentBuild.effDmgScore.toLocaleString('en-US', {maximumFractionDigits:0});
